@@ -1,0 +1,63 @@
+-- V1__add_soft_delete.sql
+-- Adiciona STATUS_ATIVO e INATIVADO_EM nas 5 tabelas principais.
+-- Executar manualmente no Oracle antes de subir a versao com soft delete.
+--
+-- STATUS_ATIVO: 'S' = ativo (padrao), 'N' = inativo (soft deleted)
+-- INATIVADO_EM: timestamp do momento da inativacao (NULL enquanto ativo)
+
+-- ── T_SN_PACIENTE ─────────────────────────────────────────────────────────────
+ALTER TABLE T_SN_PACIENTE
+    ADD STATUS_ATIVO VARCHAR2(1) DEFAULT 'S' NOT NULL;
+
+ALTER TABLE T_SN_PACIENTE
+    ADD CONSTRAINT CK_PACIENTE_STATUS_ATIVO
+    CHECK (STATUS_ATIVO IN ('S', 'N'));
+
+ALTER TABLE T_SN_PACIENTE
+    ADD INATIVADO_EM TIMESTAMP NULL;
+
+-- ── T_SN_DENTISTA ─────────────────────────────────────────────────────────────
+ALTER TABLE T_SN_DENTISTA
+    ADD STATUS_ATIVO VARCHAR2(1) DEFAULT 'S' NOT NULL;
+
+ALTER TABLE T_SN_DENTISTA
+    ADD CONSTRAINT CK_DENTISTA_STATUS_ATIVO
+    CHECK (STATUS_ATIVO IN ('S', 'N'));
+
+ALTER TABLE T_SN_DENTISTA
+    ADD INATIVADO_EM TIMESTAMP NULL;
+
+-- ── T_SN_ATENDIMENTO ──────────────────────────────────────────────────────────
+ALTER TABLE T_SN_ATENDIMENTO
+    ADD STATUS_ATIVO VARCHAR2(1) DEFAULT 'S' NOT NULL;
+
+ALTER TABLE T_SN_ATENDIMENTO
+    ADD CONSTRAINT CK_ATENDIMENTO_STATUS_ATIVO
+    CHECK (STATUS_ATIVO IN ('S', 'N'));
+
+ALTER TABLE T_SN_ATENDIMENTO
+    ADD INATIVADO_EM TIMESTAMP NULL;
+
+-- ── T_SN_MATCH ────────────────────────────────────────────────────────────────
+ALTER TABLE T_SN_MATCH
+    ADD STATUS_ATIVO VARCHAR2(1) DEFAULT 'S' NOT NULL;
+
+ALTER TABLE T_SN_MATCH
+    ADD CONSTRAINT CK_MATCH_STATUS_ATIVO
+    CHECK (STATUS_ATIVO IN ('S', 'N'));
+
+ALTER TABLE T_SN_MATCH
+    ADD INATIVADO_EM TIMESTAMP NULL;
+
+-- ── T_SN_OFERTA ───────────────────────────────────────────────────────────────
+ALTER TABLE T_SN_OFERTA
+    ADD STATUS_ATIVO VARCHAR2(1) DEFAULT 'S' NOT NULL;
+
+ALTER TABLE T_SN_OFERTA
+    ADD CONSTRAINT CK_OFERTA_STATUS_ATIVO
+    CHECK (STATUS_ATIVO IN ('S', 'N'));
+
+ALTER TABLE T_SN_OFERTA
+    ADD INATIVADO_EM TIMESTAMP NULL;
+
+COMMIT;
