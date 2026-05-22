@@ -12,8 +12,8 @@ public class PacienteDAO {
     public void inserir(Paciente p) throws SQLException {
         String sql = "INSERT INTO T_SN_PACIENTE " +
                 "(NOME_PACIENTE, EMAIL, SENHA, CPF, TIPO_PERFIL, DATA_NASCIMENTO, GENERO, PAIS, CIDADE, ESTADO, " +
-                "RENDA_SALARIO_MINIMO, DESCRICAO_PROBLEMA, TIPO_DOR, TEMPO_DOR_DIAS, URGENCIA, CRIADO_EM) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
+                "RENDA_SALARIO_MINIMO, DESCRICAO_PROBLEMA, TELEFONE, ID_DENTISTA_ADOTANTE, TIPO_DOR, TEMPO_DOR_DIAS, URGENCIA, CRIADO_EM) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, new String[]{"ID_PACIENTE"})) {
@@ -30,9 +30,11 @@ public class PacienteDAO {
             ps.setString(10, p.getEstado());
             ps.setDouble(11, p.getRendaSalarioMinimo());
             ps.setString(12, p.getDescricaoProblema());
-            ps.setString(13, p.getTipoDor());
-            ps.setInt(14, p.getTempoDorDias());
-            ps.setString(15, p.getUrgencia());
+            ps.setString(13, p.getTelefone());
+            if (p.getIdDentistaAdotante() != null) ps.setInt(14, p.getIdDentistaAdotante()); else ps.setNull(14, java.sql.Types.INTEGER);
+            ps.setString(15, p.getTipoDor());
+            ps.setInt(16, p.getTempoDorDias());
+            ps.setString(17, p.getUrgencia());
 
             ps.executeUpdate();
 
@@ -68,7 +70,7 @@ public class PacienteDAO {
 
     public List<Paciente> listarPorCidade(String cidade) throws SQLException {
         List<Paciente> lista = new ArrayList<>();
-        String sql = "SELECT * FROM T_SN_PACIENTE WHERE UPPER(CIDADE) = UPPER(?) AND STATUS_ATIVO = 'S' AND TIPO_DOR IS NOT NULL AND (DESCRICAO_PROBLEMA IS NULL OR DESCRICAO_PROBLEMA NOT LIKE 'ADOTADO:%') ORDER BY ID_PACIENTE";
+        String sql = "SELECT * FROM T_SN_PACIENTE WHERE UPPER(CIDADE) = UPPER(?) AND STATUS_ATIVO = 'S' AND TIPO_DOR IS NOT NULL AND ID_DENTISTA_ADOTANTE IS NULL ORDER BY ID_PACIENTE";
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -82,11 +84,10 @@ public class PacienteDAO {
 
     public List<Paciente> listarAdotadosPorDentista(int idDentista) throws SQLException {
         List<Paciente> lista = new ArrayList<>();
-        String sql = "SELECT * FROM T_SN_PACIENTE WHERE (DESCRICAO_PROBLEMA LIKE ? OR DESCRICAO_PROBLEMA = ?) AND STATUS_ATIVO = 'S' ORDER BY ID_PACIENTE";
+        String sql = "SELECT * FROM T_SN_PACIENTE WHERE ID_DENTISTA_ADOTANTE = ? AND STATUS_ATIVO = 'S' ORDER BY ID_PACIENTE";
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, "ADOTADO:" + idDentista + "|%");
-            ps.setString(2, "ADOTADO:" + idDentista);
+            ps.setInt(1, idDentista);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) lista.add(mapear(rs));
             }
@@ -157,7 +158,7 @@ public class PacienteDAO {
     public void atualizar(Paciente p) throws SQLException {
         String sql = "UPDATE T_SN_PACIENTE SET NOME_PACIENTE=?, EMAIL=?, CPF=?, " +
                 "DATA_NASCIMENTO=?, GENERO=?, PAIS=?, CIDADE=?, ESTADO=?, RENDA_SALARIO_MINIMO=?, " +
-                "DESCRICAO_PROBLEMA=?, TIPO_DOR=?, TEMPO_DOR_DIAS=?, URGENCIA=? " +
+                "DESCRICAO_PROBLEMA=?, TELEFONE=?, ID_DENTISTA_ADOTANTE=?, TIPO_DOR=?, TEMPO_DOR_DIAS=?, URGENCIA=? " +
                 "WHERE ID_PACIENTE=?";
 
         try (Connection conn = ConnectionFactory.getConnection();
@@ -173,10 +174,12 @@ public class PacienteDAO {
             ps.setString(8, p.getEstado());
             ps.setDouble(9, p.getRendaSalarioMinimo());
             ps.setString(10, p.getDescricaoProblema());
-            ps.setString(11, p.getTipoDor());
-            ps.setInt(12, p.getTempoDorDias());
-            ps.setString(13, p.getUrgencia());
-            ps.setInt(14, p.getId());
+            ps.setString(11, p.getTelefone());
+            if (p.getIdDentistaAdotante() != null) ps.setInt(12, p.getIdDentistaAdotante()); else ps.setNull(12, java.sql.Types.INTEGER);
+            ps.setString(13, p.getTipoDor());
+            ps.setInt(14, p.getTempoDorDias());
+            ps.setString(15, p.getUrgencia());
+            ps.setInt(16, p.getId());
 
             ps.executeUpdate();
         }
@@ -218,40 +221,10 @@ public class PacienteDAO {
         try { p.setEstado(rs.getString("ESTADO")); } catch (SQLException ignored) {}
         p.setRendaSalarioMinimo(rs.getDouble("RENDA_SALARIO_MINIMO"));
 
-        // DESCRICAO_PROBLEMA: "ADOTADO:{id}|TEL:{phone}|{desc}" | "TEL:{phone}|{desc}" | "{desc}"
-        String desc = rs.getString("DESCRICAO_PROBLEMA");
-
-        if (desc != null && desc.startsWith("ADOTADO:")) {
-            int firstPipe = desc.indexOf('|');
-            if (firstPipe > 0) {
-                try {
-                    int idDent = Integer.parseInt(desc.substring(8, firstPipe));
-                    p.setStatus("adotado");
-                    p.setIdDentistaResponsavel(idDent);
-                } catch (NumberFormatException ignored) {}
-                desc = desc.substring(firstPipe + 1);
-            } else {
-                try {
-                    int idDent = Integer.parseInt(desc.substring(8));
-                    p.setStatus("adotado");
-                    p.setIdDentistaResponsavel(idDent);
-                } catch (NumberFormatException ignored) {}
-                desc = "";
-            }
-        }
-
-        if (desc != null && desc.startsWith("TEL:")) {
-            int pipe = desc.indexOf('|');
-            if (pipe > 0) {
-                p.setTelefone(desc.substring(4, pipe));
-                p.setDescricaoProblema(desc.substring(pipe + 1));
-            } else {
-                p.setTelefone(desc.substring(4));
-                p.setDescricaoProblema("");
-            }
-        } else {
-            p.setDescricaoProblema(desc);
-        }
+        p.setDescricaoProblema(rs.getString("DESCRICAO_PROBLEMA"));
+        p.setTelefone(rs.getString("TELEFONE"));
+        int idAdot = rs.getInt("ID_DENTISTA_ADOTANTE");
+        p.setIdDentistaAdotante(rs.wasNull() ? null : idAdot);
 
         p.setTipoDor(rs.getString("TIPO_DOR"));
         p.setTempoDorDias(rs.getInt("TEMPO_DOR_DIAS"));

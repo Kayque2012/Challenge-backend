@@ -146,11 +146,21 @@ public class DentistaDAO {
     }
 
     public void deletar(int id) throws SQLException {
-        String sql = "UPDATE T_SN_DENTISTA SET STATUS_ATIVO = 'N', INATIVADO_EM = SYSTIMESTAMP WHERE ID_DENTISTA = ?";
-        try (Connection conn = ConnectionFactory.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            ps.executeUpdate();
+        String sqlPacientes = "UPDATE T_SN_PACIENTE SET ID_DENTISTA_ADOTANTE = NULL WHERE ID_DENTISTA_ADOTANTE = ?";
+        String sqlDentista  = "UPDATE T_SN_DENTISTA SET STATUS_ATIVO = 'N', INATIVADO_EM = SYSTIMESTAMP WHERE ID_DENTISTA = ?";
+        try (Connection conn = ConnectionFactory.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement ps1 = conn.prepareStatement(sqlPacientes);
+                 PreparedStatement ps2 = conn.prepareStatement(sqlDentista)) {
+                ps1.setInt(1, id);
+                ps1.executeUpdate();
+                ps2.setInt(1, id);
+                ps2.executeUpdate();
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
         }
     }
 

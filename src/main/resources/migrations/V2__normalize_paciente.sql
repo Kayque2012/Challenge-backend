@@ -1,0 +1,30 @@
+-- V2__normalize_paciente.sql
+-- Normaliza DESCRICAO_PROBLEMA: extrai ID_DENTISTA_ADOTANTE e TELEFONE para colunas próprias.
+-- Executar manualmente no Oracle ANTES de subir o código da Fase 2.
+-- ORDEM IMPORTA: migrar dados ANTES de limpar o campo.
+
+-- 1. Nova coluna e FK
+ALTER TABLE T_SN_PACIENTE ADD ID_DENTISTA_ADOTANTE NUMBER NULL;
+
+ALTER TABLE T_SN_PACIENTE ADD CONSTRAINT FK_PACIENTE_DENTISTA_ADOTANTE
+    FOREIGN KEY (ID_DENTISTA_ADOTANTE) REFERENCES T_SN_DENTISTA(ID_DENTISTA);
+
+-- 2. Migrar ID do dentista para a nova coluna
+UPDATE T_SN_PACIENTE
+SET ID_DENTISTA_ADOTANTE = TO_NUMBER(
+    REGEXP_SUBSTR(DESCRICAO_PROBLEMA, '^ADOTADO:(\d+)', 1, 1, NULL, 1))
+WHERE DESCRICAO_PROBLEMA LIKE 'ADOTADO:%';
+
+-- 3. Migrar telefone para coluna TELEFONE (somente se ainda não preenchida)
+UPDATE T_SN_PACIENTE
+SET TELEFONE = REGEXP_SUBSTR(DESCRICAO_PROBLEMA, 'TEL:([^|]+)', 1, 1, NULL, 1)
+WHERE DESCRICAO_PROBLEMA LIKE '%TEL:%'
+  AND (TELEFONE IS NULL OR TELEFONE = ' ');
+
+-- 4. Limpar prefixos do campo — deixar só a descrição clínica pura
+UPDATE T_SN_PACIENTE
+SET DESCRICAO_PROBLEMA = TRIM(
+    REGEXP_REPLACE(DESCRICAO_PROBLEMA, '^(ADOTADO:\d+\|)?(TEL:[^|]+\|)?', ''))
+WHERE DESCRICAO_PROBLEMA IS NOT NULL;
+
+COMMIT;

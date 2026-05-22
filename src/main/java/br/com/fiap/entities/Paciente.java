@@ -54,18 +54,23 @@ public class Paciente {
     private String telefone;
 
     /**
-     * Campo transiente: "adotado" quando DESCRICAO_PROBLEMA começa com "ADOTADO:{id}".
-     * Não existe coluna própria no banco — derivado pelo PacienteDAO ao ler DESCRICAO_PROBLEMA.
+     * Status do paciente — campo livre persistido no banco.
+     * getStatus() é computado: retorna "adotado" se idDentistaAdotante != null.
      */
     @JsonProperty("status")
     private String status;
 
     /**
-     * Campo transiente: ID do dentista que adotou este paciente.
-     * Derivado do prefixo "ADOTADO:{id}" em DESCRICAO_PROBLEMA pelo PacienteDAO.
+     * ID do dentista que adotou este paciente. Coluna própria após V2__normalize_paciente.sql.
+     * Exposto também como idDentistaResponsavel via getter/setter para retrocompatibilidade com o frontend.
      */
-    @JsonProperty("idDentistaResponsavel")
+    @JsonProperty("idDentistaAdotante")
+    private Integer idDentistaAdotante;
+
+    /** Mantido para não remover campo existente — getter/setter delegam a idDentistaAdotante. */
+    @JsonIgnore
     private int idDentistaResponsavel;
+
     private String tipoDor;
     private int tempoDorDias;
     private String urgencia;
@@ -138,10 +143,14 @@ public class Paciente {
     public void setDescricaoProblema(String descricaoProblema) { this.descricaoProblema = descricaoProblema; }
     public String getTelefone() { return telefone; }
     public void setTelefone(String telefone) { this.telefone = telefone; }
-    public String getStatus() { return status; }
+    public String getStatus() { return idDentistaAdotante != null ? "adotado" : status; }
     public void setStatus(String status) { this.status = status; }
-    public int getIdDentistaResponsavel() { return idDentistaResponsavel; }
-    public void setIdDentistaResponsavel(int idDentistaResponsavel) { this.idDentistaResponsavel = idDentistaResponsavel; }
+    public Integer getIdDentistaAdotante() { return idDentistaAdotante; }
+    public void setIdDentistaAdotante(Integer idDentistaAdotante) { this.idDentistaAdotante = idDentistaAdotante; }
+    @JsonProperty("idDentistaResponsavel")
+    public int getIdDentistaResponsavel() { return idDentistaAdotante != null ? idDentistaAdotante : 0; }
+    @JsonProperty("idDentistaResponsavel")
+    public void setIdDentistaResponsavel(int idDentistaResponsavel) { this.idDentistaAdotante = idDentistaResponsavel != 0 ? idDentistaResponsavel : null; }
     public String getTipoDor() { return tipoDor; }
     public void setTipoDor(String tipoDor) { this.tipoDor = tipoDor; }
     public int getTempoDorDias() { return tempoDorDias; }

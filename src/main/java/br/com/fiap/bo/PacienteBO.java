@@ -134,18 +134,14 @@ public class PacienteBO {
             if (paciente.getTempoDorDias() <= 0 && existente.getTempoDorDias() > 0)
                 paciente.setTempoDorDias(existente.getTempoDorDias());
 
-            String telefoneEfetivo = (paciente.getTelefone() != null && !paciente.getTelefone().isBlank())
-                    ? paciente.getTelefone() : existente.getTelefone();
-            String descBase = (paciente.getDescricaoProblema() != null && !paciente.getDescricaoProblema().isBlank())
-                    ? paciente.getDescricaoProblema()
-                    : (existente.getDescricaoProblema() != null ? existente.getDescricaoProblema() : "");
-            String descComTel = (telefoneEfetivo != null && !telefoneEfetivo.isBlank())
-                    ? "TEL:" + telefoneEfetivo + "|" + descBase : descBase;
-            if ("adotado".equals(paciente.getStatus()) && paciente.getIdDentistaResponsavel() > 0) {
-                paciente.setDescricaoProblema("ADOTADO:" + paciente.getIdDentistaResponsavel() + "|" + descComTel);
-            } else {
-                paciente.setDescricaoProblema(descComTel);
-            }
+            if (paciente.getTelefone() == null || paciente.getTelefone().isBlank())
+                paciente.setTelefone(existente.getTelefone());
+            if ("adotado".equals(paciente.getStatus()) && paciente.getIdDentistaResponsavel() > 0)
+                paciente.setIdDentistaAdotante(paciente.getIdDentistaResponsavel());
+            else
+                paciente.setIdDentistaAdotante(existente.getIdDentistaAdotante());
+            if (paciente.getDescricaoProblema() == null || paciente.getDescricaoProblema().isBlank())
+                paciente.setDescricaoProblema(existente.getDescricaoProblema());
 
             paciente.setUrgencia(paciente.calcularUrgencia());
             dao.atualizar(paciente);
