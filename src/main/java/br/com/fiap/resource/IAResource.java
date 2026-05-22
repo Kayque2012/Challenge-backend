@@ -27,13 +27,21 @@ public class IAResource {
 
     private static final Logger LOG = Logger.getLogger(IAResource.class.getName());
     private static final int LIMITE_POR_IP = 10;
+    private static final long TTL_MS = 60 * 60 * 1000L;
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final HttpClient CLIENT = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
+    private static class CachedResponse {
+        String json;
+        long expiraEm;
+        CachedResponse(String json, long expiraEm) { this.json = json; this.expiraEm = expiraEm; }
+    }
+
     private final ConcurrentHashMap<String, AtomicInteger> contadorPorIp = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, CachedResponse> cache = new ConcurrentHashMap<>();
 
     private String apiKey;
 
@@ -50,6 +58,12 @@ public class IAResource {
     @Scheduled(every = "1m")
     void resetarContadores() {
         contadorPorIp.clear();
+    }
+
+    @Scheduled(every = "10m")
+    void limparExpirados() {
+        long now = System.currentTimeMillis();
+        cache.entrySet().removeIf(e -> e.getValue().expiraEm < now);
     }
 
     @POST
@@ -80,6 +94,14 @@ public class IAResource {
             if (pergunta.length() > 500)  pergunta  = pergunta.substring(0, 500);
             if (dadosJson != null && dadosJson.length() > 2000) dadosJson = dadosJson.substring(0, 2000);
 
+            // Verificar cache
+            String cacheKey = String.valueOf((pergunta + "|" + dadosJson).hashCode());
+            CachedResponse cached = cache.get(cacheKey);
+            if (cached != null && cached.expiraEm > System.currentTimeMillis()) {
+                LOG.info("[IA] cache hit");
+                return Response.ok(cached.json).build();
+            }
+
             // Montar prompt
             String prompt = "Es a IA de triagem da Turma do Bem.\n" +
                     "DADOS DA FILA (JSON): " + dadosJson + "\n" +
@@ -101,6 +123,17 @@ public class IAResource {
                     .build();
 
             HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                if (cache.size() > 500) {
+                    cache.entrySet().stream()
+                            .sorted(java.util.Comparator.comparingLong(e -> e.getValue().expiraEm))
+                            .limit(100)
+                            .map(Map.Entry::getKey)
+                            .forEach(cache::remove);
+                }
+                cache.put(cacheKey, new CachedResponse(response.body(), System.currentTimeMillis() + TTL_MS));
+                LOG.info("[IA] cache miss - armazenado");
+            }
             return Response.ok(response.body()).build();
 
         } catch (InterruptedException e) {

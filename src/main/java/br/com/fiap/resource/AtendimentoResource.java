@@ -2,6 +2,7 @@ package br.com.fiap.resource;
 
 import br.com.fiap.bo.AtendimentoBO;
 import br.com.fiap.entities.Atendimento;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -29,17 +30,20 @@ public class AtendimentoResource {
         return Response.ok(bo.buscarPorId(id)).build();
     }
 
+    @RolesAllowed({"dentista", "admin"})
     @POST
     public Response cadastrar(Atendimento atendimento) {
         return Response.status(Response.Status.CREATED).entity(bo.cadastrar(atendimento)).build();
     }
 
+    @RolesAllowed({"dentista", "admin"})
     @PUT
     @Path("/{id}")
     public Response atualizar(@PathParam("id") int id, Atendimento atendimento) {
         return Response.ok(bo.atualizar(id, atendimento)).build();
     }
 
+    @RolesAllowed({"dentista", "admin"})
     @DELETE
     @Path("/{id}")
     public Response excluir(@PathParam("id") int id) {
@@ -47,6 +51,7 @@ public class AtendimentoResource {
         return Response.noContent().build();
     }
 
+    @RolesAllowed({"dentista", "admin"})
     @PATCH
     @Path("/{id}/concluir")
     public Response concluir(@PathParam("id") int id) {

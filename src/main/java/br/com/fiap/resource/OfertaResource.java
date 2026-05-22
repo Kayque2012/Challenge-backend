@@ -1,6 +1,7 @@
 package br.com.fiap.resource;
 
 import br.com.fiap.bo.OfertaBO;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -32,6 +33,7 @@ public class OfertaResource {
      * Body: { "idDentista": 55, "idPaciente": 36, "procedimento": "...",
      *         "slots": [{"data":"2026-05-20","hora":"10:00"}, ...] }
      */
+    @RolesAllowed({"dentista", "admin"})
     @POST
     public Response criar(Map<String, Object> body) {
         int idDentista = toInt(body.get("idDentista"));
@@ -80,6 +82,7 @@ public class OfertaResource {
      * PUT /ofertas/{id}/confirmar
      * Body: { "data": "2026-05-20", "hora": "10:00" }
      */
+    @RolesAllowed({"dentista", "paciente", "admin"})
     @PUT
     @Path("/{id}/confirmar")
     public Response confirmar(@PathParam("id") int id, Map<String, String> body) {
@@ -97,6 +100,7 @@ public class OfertaResource {
     }
 
     /** PATCH /ofertas/{id}/concluir — dentist marks appointment as concluded */
+    @RolesAllowed({"dentista", "admin"})
     @PATCH
     @Path("/{id}/concluir")
     public Response concluir(@PathParam("id") int id) {
@@ -105,6 +109,7 @@ public class OfertaResource {
     }
 
     /** DELETE /ofertas/{id} — cancel / remove an offer */
+    @RolesAllowed({"dentista", "admin"})
     @DELETE
     @Path("/{id}")
     public Response cancelar(@PathParam("id") int id) {

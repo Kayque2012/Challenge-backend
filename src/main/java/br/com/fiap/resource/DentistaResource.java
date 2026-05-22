@@ -43,6 +43,7 @@ public class DentistaResource {
         return Response.status(Response.Status.CREATED).entity(bo.cadastrar(dentista)).build();
     }
 
+    @RolesAllowed({"dentista", "admin"})
     @PUT
     @Path("/{id}")
     public Response atualizar(@PathParam("id") int id, Dentista dentista) {

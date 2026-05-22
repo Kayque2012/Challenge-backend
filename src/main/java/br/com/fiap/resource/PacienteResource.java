@@ -65,6 +65,7 @@ public class PacienteResource {
         return Response.status(Response.Status.CREATED).entity(criado).build();
     }
 
+    @RolesAllowed({"dentista", "paciente", "admin"})
     @PUT
     @Path("/{id}")
     public Response atualizar(@PathParam("id") int id, Paciente paciente) {
@@ -99,6 +100,7 @@ public class PacienteResource {
         return Response.ok(Map.of("id", id, "elegivel", bo.verificarElegibilidade(id))).build();
     }
 
+    @RolesAllowed({"dentista", "paciente", "admin"})
     @PUT
     @Path("/redefinir-senha")
     public Response redefinirSenha(Map<String, String> body) {
