@@ -2,6 +2,8 @@
 .env
 .env.local
 application-secrets.properties
+privateKey.pem
+publicKey.pem
 
 # ── Build Quarkus ─────────────────────────────────────────────────────────────
 target/

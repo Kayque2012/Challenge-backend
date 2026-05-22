@@ -6,9 +6,13 @@ import br.com.fiap.entities.Dentista;
 import br.com.fiap.entities.Paciente;
 import br.com.fiap.exception.DatabaseException;
 import br.com.fiap.util.SenhaUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.smallrye.jwt.build.Jwt;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.sql.SQLException;
+import java.time.Duration;
+import java.util.Map;
 
 /**
  * Camada de regras de negocio da autenticacao.
@@ -18,6 +22,8 @@ import java.sql.SQLException;
  */
 @ApplicationScoped
 public class AuthBO {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final PacienteDAO pacienteDAO = new PacienteDAO();
     private final DentistaDAO dentistaDAO = new DentistaDAO();
@@ -32,20 +38,27 @@ public class AuthBO {
      *      - Caso contrário → texto plano (usuário antigo) + migra automaticamente
      *   3. Retorna o objeto autenticado ou null se não encontrar / senha errada
      */
-    public Object autenticar(String email, String senha) {
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> autenticar(String email, String senha) {
         try {
             // --- Tenta como dentista ---
             Dentista dentista = dentistaDAO.buscarPorEmail(email);
             if (dentista != null && SenhaUtil.verificar(senha, dentista.getSenha())) {
                 migrarSenhaDentistaSePreciso(dentista, senha);
-                return dentista;
+                Map<String, Object> resp = MAPPER.convertValue(dentista, Map.class);
+                resp.remove("senha");
+                resp.put("token", gerarToken(dentista));
+                return resp;
             }
 
             // --- Tenta como paciente ---
             Paciente paciente = pacienteDAO.buscarPorEmail(email);
             if (paciente != null && SenhaUtil.verificar(senha, paciente.getSenha())) {
                 migrarSenhaPacienteSePreciso(paciente, senha);
-                return paciente;
+                Map<String, Object> resp = MAPPER.convertValue(paciente, Map.class);
+                resp.remove("senha");
+                resp.put("token", gerarToken(paciente));
+                return resp;
             }
 
             return null;
@@ -80,6 +93,28 @@ public class AuthBO {
                 System.err.println("[Auth] Falha ao migrar senha do paciente id=" + p.getId() + ": " + e.getMessage());
             }
         }
+    }
+
+    private String gerarToken(Object usuario) {
+        int id;
+        String email;
+        String role;
+        if (usuario instanceof Dentista d) {
+            id    = d.getId();
+            email = d.getEmail();
+            role  = "dentista";
+        } else {
+            Paciente p = (Paciente) usuario;
+            id    = p.getId();
+            email = p.getEmail();
+            role  = "paciente";
+        }
+        return Jwt.issuer("turma-do-bem")
+                .subject(String.valueOf(id))
+                .claim("email", email)
+                .groups(role)
+                .expiresIn(Duration.ofHours(24))
+                .sign();
     }
 
     /** Verifica se um email ja esta cadastrado em qualquer das duas tabelas. */

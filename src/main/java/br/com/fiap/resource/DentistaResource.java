@@ -2,6 +2,7 @@ package br.com.fiap.resource;
 
 import br.com.fiap.bo.DentistaBO;
 import br.com.fiap.entities.Dentista;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -24,6 +25,7 @@ public class DentistaResource {
         return Response.ok(lista).build();
     }
 
+    @RolesAllowed("dentista")
     @GET
     @Path("/inativos")
     public Response listarInativos() {
@@ -47,6 +49,7 @@ public class DentistaResource {
         return Response.ok(bo.atualizar(id, dentista)).build();
     }
 
+    @RolesAllowed("dentista")
     @DELETE
     @Path("/{id}")
     public Response excluir(@PathParam("id") int id) {
@@ -54,6 +57,7 @@ public class DentistaResource {
         return Response.noContent().build();
     }
 
+    @RolesAllowed("dentista")
     @PATCH
     @Path("/{id}/reativar")
     public Response reativar(@PathParam("id") int id) {

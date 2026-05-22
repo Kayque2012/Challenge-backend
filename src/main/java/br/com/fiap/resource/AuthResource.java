@@ -40,7 +40,7 @@ public class AuthResource {
                     .build();
         }
 
-        Object usuario = authBO.autenticar(email, senha);
+        Map<String, Object> usuario = authBO.autenticar(email, senha);
 
         if (usuario == null) {
             return Response.status(Response.Status.UNAUTHORIZED)
