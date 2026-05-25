@@ -422,7 +422,7 @@ Deploy automático via GitHub Actions em `.github/workflows/` a cada push na bra
 | [Challenge-backend](https://github.com/Kayque2012/Challenge-backend) | Este repositório — API Java |
 | [Challenge-Sprint](https://github.com/Kayque2012/Challenge-Sprint) | Front-end React + Vite |
 
-**Front-end em produção:** https://challenge-sprint-rose.vercel.app
+**Front-end em produção:** https://testando-three-xi.vercel.app
 
 ---
 
