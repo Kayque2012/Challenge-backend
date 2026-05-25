@@ -159,8 +159,8 @@ Edite `src/main/resources/application.properties`:
 ```properties
 # Banco Oracle FIAP
 db.url=jdbc:oracle:thin:@oracle.fiap.com.br:1521:ORCL
-db.user=SEU_RM
-db.password=SUA_SENHA
+db.user=rm567980
+db.password=210504
 
 # Gemini IA (opcional — triagem assistida)
 gemini.api.key=SUA_CHAVE_GEMINI
@@ -171,6 +171,8 @@ quarkus.mailer.port=587
 quarkus.mailer.username=seuemail@gmail.com
 quarkus.mailer.password=sua_app_password
 ```
+
+> **Obs.:** A URL do Oracle FIAP só é acessível dentro da rede/VPN da FIAP.
 
 ### 4. Iniciar em modo desenvolvimento (hot reload)
 
