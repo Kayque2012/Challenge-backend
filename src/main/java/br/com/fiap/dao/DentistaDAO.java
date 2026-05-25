@@ -145,17 +145,35 @@ public class DentistaDAO {
         }
     }
 
+    /**
+     * Soft-delete atômico em 3 etapas — tudo na mesma transação:
+     *   1. Desvincula pacientes adotados (voltam para a fila de triagem)
+     *   2. Cancela todas as ofertas pendentes/confirmadas do dentista
+     *   3. Inativa o dentista
+     * Sem rollback parcial: se qualquer etapa falhar, nenhuma persiste.
+     */
     public void deletar(int id) throws SQLException {
-        String sqlPacientes = "UPDATE T_SN_PACIENTE SET ID_DENTISTA_ADOTANTE = NULL WHERE ID_DENTISTA_ADOTANTE = ?";
-        String sqlDentista  = "UPDATE T_SN_DENTISTA SET STATUS_ATIVO = 'N', INATIVADO_EM = SYSTIMESTAMP WHERE ID_DENTISTA = ?";
+        String sqlDesvincularPacientes =
+            "UPDATE T_SN_PACIENTE SET ID_DENTISTA_ADOTANTE = NULL " +
+            "WHERE ID_DENTISTA_ADOTANTE = ?";
+        String sqlCancelarOfertas =
+            "UPDATE T_SN_OFERTA SET STATUS_ATIVO = 'N', INATIVADO_EM = SYSTIMESTAMP " +
+            "WHERE ID_DENTISTA = ? AND STATUS IN ('pendente', 'confirmado') AND STATUS_ATIVO = 'S'";
+        String sqlDentista =
+            "UPDATE T_SN_DENTISTA SET STATUS_ATIVO = 'N', INATIVADO_EM = SYSTIMESTAMP " +
+            "WHERE ID_DENTISTA = ?";
+
         try (Connection conn = ConnectionFactory.getConnection()) {
             conn.setAutoCommit(false);
-            try (PreparedStatement ps1 = conn.prepareStatement(sqlPacientes);
-                 PreparedStatement ps2 = conn.prepareStatement(sqlDentista)) {
+            try (PreparedStatement ps1 = conn.prepareStatement(sqlDesvincularPacientes);
+                 PreparedStatement ps2 = conn.prepareStatement(sqlCancelarOfertas);
+                 PreparedStatement ps3 = conn.prepareStatement(sqlDentista)) {
                 ps1.setInt(1, id);
                 ps1.executeUpdate();
                 ps2.setInt(1, id);
                 ps2.executeUpdate();
+                ps3.setInt(1, id);
+                ps3.executeUpdate();
                 conn.commit();
             } catch (SQLException e) {
                 conn.rollback();

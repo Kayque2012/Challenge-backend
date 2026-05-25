@@ -185,12 +185,32 @@ public class PacienteDAO {
         }
     }
 
+    /**
+     * Soft-delete atômico: cancela todas as ofertas pendentes/confirmadas do paciente
+     * e então o inativa — tudo em uma única transação.
+     * Garante que nenhuma oferta órfã fique visível na agenda do dentista.
+     */
     public void deletar(int id) throws SQLException {
-        String sql = "UPDATE T_SN_PACIENTE SET STATUS_ATIVO = 'N', INATIVADO_EM = SYSTIMESTAMP WHERE ID_PACIENTE = ?";
-        try (Connection conn = ConnectionFactory.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, id);
-            ps.executeUpdate();
+        String sqlCancelarOfertas =
+            "UPDATE T_SN_OFERTA SET STATUS_ATIVO = 'N', INATIVADO_EM = SYSTIMESTAMP " +
+            "WHERE ID_PACIENTE = ? AND STATUS IN ('pendente', 'confirmado') AND STATUS_ATIVO = 'S'";
+        String sqlPaciente =
+            "UPDATE T_SN_PACIENTE SET STATUS_ATIVO = 'N', INATIVADO_EM = SYSTIMESTAMP " +
+            "WHERE ID_PACIENTE = ?";
+
+        try (Connection conn = ConnectionFactory.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement ps1 = conn.prepareStatement(sqlCancelarOfertas);
+                 PreparedStatement ps2 = conn.prepareStatement(sqlPaciente)) {
+                ps1.setInt(1, id);
+                ps1.executeUpdate();
+                ps2.setInt(1, id);
+                ps2.executeUpdate();
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
         }
     }
 

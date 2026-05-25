@@ -6,6 +6,7 @@ import io.vertx.core.http.HttpServerRequest;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.*;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -43,11 +44,11 @@ public class IAResource {
     private final ConcurrentHashMap<String, AtomicInteger> contadorPorIp = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, CachedResponse> cache = new ConcurrentHashMap<>();
 
-    private String apiKey;
+    @ConfigProperty(name = "gemini.api.key", defaultValue = "")
+    String apiKey;
 
     @PostConstruct
     void validarApiKey() {
-        apiKey = System.getenv("GEMINI_API_KEY");
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException(
                     "GEMINI_API_KEY nao configurada. Defina a variavel de ambiente antes de iniciar.");
